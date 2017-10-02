@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="en" ng-app="app" ng-controller="login_controller">
+<pre>
+    <h2 style="color:red">Login form</h2>
+    <form ng-submit="login_details({u_name:uname,u_pwd:upwd})">
+        <label><b>uname</b></label>&emsp;
+        <input type="text" ng-model="uname"><br>
+        <label><b>upwd</b></label>&emsp;
+        <input type="password" ng-model="upwd"><br><br>
+        <input type="submit" value="login">
+    </form>
+        <button ng-click="logout()">logOut</button>
+</pre>
+<br>
+<pre>
+    <h2 style="color:red">Register form</h2>
+    <form ng-submit="register_details({username:username,password:password,firstname:firstname,lastname:lastname})">
+        <label><b>username</b></label>&emsp;
+        <input type="text" ng-model="username"><br>
+        <label><b>upwd</b></label>&emsp;
+        <input type="password" ng-model="password"><br>
+        <label><b>firstname</b></label>&emsp;
+        <input type="text" ng-model="firstname"><br>
+        <label><b>lastname</b></label>&emsp;
+        <input type="text" ng-model="lastname"><br><br>
+        <input type="submit" value="submit">
+    </form>
+    <br><br>
+    <button ng-click="getUsers()">getUsers</button><br>
+    <button ng-click="accessTestapi()">accessTestapi</button>&emsp;
+</pre>
+<script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.6.0/angular.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/ngStorage/0.3.11/ngStorage.min.js"></script>
+<script>
+    var app = angular.module("app", ["ngStorage"]);
+
+    app.controller("login_controller", login_controller);
+
+    login_controller.$inject = ["$scope", "login_service", "$http"];
+
+    function login_controller($scope, login_service, $http) {
+        $scope.login_details = function (data) {
+            login_service.login(data);
+        };
+        $scope.register_details = function (data) {
+            console.log(data);
+            login_service.register(data);
+        };
+        $scope.logout = function () {
+            var token = localStorage.getItem("token");
+            if (!token) {
+                alert("u already logged out");
+            } else {
+                localStorage.clear();
+                alert('u have logged out successfully');
+            }
+        };
+        $scope.getUsers = function () {
+            var token = localStorage.getItem('token');
+            if (token) {
+                return $http({
+                    method: 'GET',
+                    url: 'http://localhost:8086/users',
+                    headers: {
+                        'token': token
+                    }
+                }).then(function successCallback(response) {
+                    if (response.status == 200) {
+                        alert(JSON.stringify(response.data));
+                    } else {
+                        alert('getting users failed');
+                    }
+                }, function errorCallback(error) {
+                    console.log("Error in getting users !!! ");
+                });
+            } else {
+                alert("Invalid Access Token");
+            }
+
+
+        };
+        $scope.accessTestapi = function () {
+            var token = localStorage.getItem('token');
+            if (token) {
+                return $http({
+                    method: 'GET',
+                    url: 'http://localhost:8086/testApi',
+                    headers: {
+                        "token": token
+                    }
+                }).then(function successCallback(response) {
+                    if (response.status == 200) {
+                        alert(response.data);
+                    }
+                }, function errorCallback(error) {
+                    console.log("Error in getting users !!! ");
+                    alert(JSON.stringify(error));
+                });
+
+            } else {
+                alert("Invalid Access Token");
+
+            }
+
+
+        }
+
+    }
+
+
+    app.service("login_service", login_service);
+    login_service.$inject = ["$http", "$localStorage"];
+    function login_service($http) {
+        this.register = function (data) {
+            console.log(data);
+            return $http({
+                method: 'POST',
+                url: 'http://localhost:8086/register',
+                data: data
+            }).then(function successCallback(response) {
+
+                if (response.status == 201) {
+                    alert("registered successfully");
+                }
+            }, function errorCallback(error) {
+                console.log("Error in register in !!! ");
+                // Add the error details to the UI ??
+                if (error != null && error.data != null) {
+                    alert("register Failed - " + error.data.error.message);
+                }
+                else {
+                    return "Login Failed, Could not connect to the server ";
+                }
+            });
+        };
+        this.login = function (data) {
+            console.log(data);
+            return $http({
+                method: 'POST',
+                url: 'http://localhost:8086/login',
+                data: data
+            }).then(function successCallback(response) {
+                console.log(response);
+                if (response.status == 200) {
+                    localStorage.setItem("token", response.data.token);
+                    alert(response.data.msg);
+                }
+            }, function errorCallback(error) {
+                console.log("Error in sign in !!! ");
+                // Add the error details to the UI ??
+                if (error != null && error.data != null) {
+                    alert("login Failed - " + JSON.stringify(error.data));
+                }
+                else {
+                    return "Login Failed, Could not connect to the server ";
+                }
+            });
+        }
+    }
+</script>
+
+</body>
+</html>
